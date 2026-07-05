@@ -90,10 +90,18 @@ export default {
 				}
 			}
 
-			// GitHub Raw 前置的 Fastly CDN 可能继续返回约 5 分钟的旧内容。
-			// 每次 Worker 缓存未命中时使用唯一查询参数，强制生成新的上游缓存键。
-			const upstreamUrl = new URL(githubRawUrl);
-			upstreamUrl.searchParams.set('__cf_workers_raw_bust', `${Date.now()}-${crypto.randomUUID()}`);
+			// raw.githubusercontent.com 的 Fastly CDN 会忽略或归一化查询参数，
+			// 同一路径可能继续返回约 5 分钟的旧版本。配置完整仓库信息时，
+			// 改用 GitHub Contents API 的 raw 媒体类型获取当前分支内容。
+			let upstreamUrl = githubRawUrl;
+			if (env.GH_NAME && env.GH_REPO && env.GH_BRANCH) {
+				upstreamUrl = new URL(
+					`https://api.github.com/repos/${encodeURIComponent(env.GH_NAME)}/${encodeURIComponent(env.GH_REPO)}/contents${url.pathname}`
+				);
+				upstreamUrl.searchParams.set('ref', env.GH_BRANCH);
+				headers.set('Accept', 'application/vnd.github.raw+json');
+				headers.set('X-GitHub-Api-Version', '2022-11-28');
+			}
 			const response = await fetch(upstreamUrl, {
 				headers,
 				cache: 'no-store'
