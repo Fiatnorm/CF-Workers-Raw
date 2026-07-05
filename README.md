@@ -131,6 +131,7 @@ https://raw.090227.xyz/https://raw.githubusercontent.com/cmliu/CF-Workers-Raw/ma
 | GH_NAME| `cmliu` | ❌| 你的GitHub用户名 |
 | GH_REPO| `CF-Workers-Raw` | ❌| 你的GitHub仓库(必须设置`GH_NAME`变量为前提) |
 | GH_BRANCH| `main` | ❌| 你的GitHub分支(必须设置`GH_NAME`和`GH_REPO`变量为前提) |
+| CACHE_TTL | `30` | ❌| Worker 边缘缓存秒数，默认 `30`；设为 `0` 可完全禁用缓存，最大 `86400` |
 | URL302 | `https://t.me/CMLiussss` |❌| 主页302跳转 |
 | URL | `https://github.com/cmliu/CF-Workers-Raw/blob/main/README.md` |❌| 主页伪装 |
 | ERROR | `无法获取文件，检查路径或TOKEN是否正确。` |❌| 自定义错误提示 |

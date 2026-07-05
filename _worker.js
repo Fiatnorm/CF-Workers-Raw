@@ -1,6 +1,6 @@
-let token = "";
 export default {
-	async fetch(request, env) {
+	async fetch(request, env, ctx) {
+		let token = "";
 		const url = new URL(request.url);
 		if (url.pathname !== '/') {
 			let githubRawUrl = 'https://raw.githubusercontent.com';
@@ -79,15 +79,34 @@ export default {
 				headers.append('Authorization', `token ${githubToken}`);
 			}
 
-			// 发起请求
-			const response = await fetch(githubRawUrl, { headers });
+			const cacheTtl = getCacheTtl(env.CACHE_TTL);
+			const cacheKey = await createCacheKey(url.origin, githubRawUrl, headers.get('Authorization'));
+			const cache = caches.default;
+
+			if (cacheTtl > 0) {
+				const cachedResponse = await cache.match(cacheKey);
+				if (cachedResponse) {
+					return createClientResponse(cachedResponse, 'HIT');
+				}
+			}
+
+			// 缓存未命中时才请求 GitHub，并绕过 GitHub Raw 的旧缓存。
+			const response = await fetch(githubRawUrl, {
+				headers,
+				cache: 'no-store'
+			});
 
 			// 检查请求是否成功 (状态码 200 到 299)
 			if (response.ok) {
-				return new Response(response.body, {
-					status: response.status,
-					headers: response.headers
-				});
+				if (cacheTtl > 0) {
+					const cacheResponse = new Response(response.clone().body, response);
+					cacheResponse.headers.set('Cache-Control', `public, max-age=${cacheTtl}`);
+					cacheResponse.headers.delete('Set-Cookie');
+					cacheResponse.headers.delete('Vary');
+					ctx.waitUntil(cache.put(cacheKey, cacheResponse));
+				}
+
+				return createClientResponse(response, 'MISS');
 			} else {
 				const errorText = env.ERROR || '无法获取文件，检查路径或TOKEN是否正确。';
 				// 如果请求不成功，返回适当的错误响应
@@ -110,6 +129,45 @@ export default {
 		}
 	}
 };
+
+function getCacheTtl(value) {
+	if (value === undefined || value === null || value === '') return 30;
+
+	const ttl = Number.parseInt(value, 10);
+	if (!Number.isFinite(ttl)) return 30;
+	return Math.min(Math.max(ttl, 0), 86400);
+}
+
+async function createCacheKey(origin, githubRawUrl, authorization) {
+	const data = new TextEncoder().encode(`${githubRawUrl}\n${authorization || ''}`);
+	const digest = await crypto.subtle.digest('SHA-256', data);
+	const hash = Array.from(new Uint8Array(digest), byte =>
+		byte.toString(16).padStart(2, '0')
+	).join('');
+
+	return new Request(`${origin}/__cf_workers_raw_cache__/${hash}`, {
+		method: 'GET'
+	});
+}
+
+function createClientResponse(response, cacheStatus) {
+	const responseHeaders = new Headers(response.headers);
+
+	// 缓存仅保留在 Worker 边缘，禁止浏览器和其他中间代理缓存私有文件。
+	responseHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+	responseHeaders.set('Cloudflare-CDN-Cache-Control', 'no-store');
+	responseHeaders.set('CDN-Cache-Control', 'no-store');
+	responseHeaders.set('Pragma', 'no-cache');
+	responseHeaders.set('Expires', '0');
+	responseHeaders.set('X-CF-Workers-Raw-Cache', cacheStatus);
+	responseHeaders.delete('Age');
+
+	return new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers: responseHeaders
+	});
+}
 
 async function nginx() {
 	const text = `
