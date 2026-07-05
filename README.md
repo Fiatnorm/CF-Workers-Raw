@@ -131,12 +131,12 @@ https://raw.090227.xyz/https://raw.githubusercontent.com/cmliu/CF-Workers-Raw/ma
 | GH_NAME| `cmliu` | ❌| 你的GitHub用户名 |
 | GH_REPO| `CF-Workers-Raw` | ❌| 你的GitHub仓库(必须设置`GH_NAME`变量为前提) |
 | GH_BRANCH| `main` | ❌| 你的GitHub分支(必须设置`GH_NAME`和`GH_REPO`变量为前提) |
-| CACHE_TTL | `30` | ❌| Worker 边缘缓存秒数，默认 `30`；设为 `0` 可完全禁用缓存，最大 `86400` |
+| CACHE_TTL | `10` | ❌| Worker 边缘缓存秒数，默认 `10`；设为 `0` 可完全禁用缓存，最大 `86400` |
 | URL302 | `https://t.me/CMLiussss` |❌| 主页302跳转 |
 | URL | `https://github.com/cmliu/CF-Workers-Raw/blob/main/README.md` |❌| 主页伪装 |
 | ERROR | `无法获取文件，检查路径或TOKEN是否正确。` |❌| 自定义错误提示 |
 
-> GitHub Raw 前置 CDN 可能短暂缓存同一路径的旧版本。完整配置 `GH_NAME`、`GH_REPO` 和 `GH_BRANCH` 后，Worker 会改用 GitHub Contents API 获取当前分支内容；如需上传后立即读取最新内容，请将 `CACHE_TTL` 设为 `0`。
+> GitHub Raw 前置 CDN 可能短暂缓存同一路径的旧版本。完整配置 `GH_NAME`、`GH_REPO` 和 `GH_BRANCH` 后，Worker 会改用 GitHub Contents API 获取当前分支内容。默认最多缓存 `10` 秒；如需上传后立即读取最新内容，请将 `CACHE_TTL` 设为 `0`。Worker 对客户端统一返回纯文本，避免浏览器 JSON 格式化扩展显示“美观输出”等控件。
 
 ## 🎯 TOKEN_PATH 详细说明
 
