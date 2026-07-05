@@ -90,8 +90,11 @@ export default {
 				}
 			}
 
-			// 缓存未命中时才请求 GitHub，并绕过 GitHub Raw 的旧缓存。
-			const response = await fetch(githubRawUrl, {
+			// GitHub Raw 前置的 Fastly CDN 可能继续返回约 5 分钟的旧内容。
+			// 每次 Worker 缓存未命中时使用唯一查询参数，强制生成新的上游缓存键。
+			const upstreamUrl = new URL(githubRawUrl);
+			upstreamUrl.searchParams.set('__cf_workers_raw_bust', `${Date.now()}-${crypto.randomUUID()}`);
+			const response = await fetch(upstreamUrl, {
 				headers,
 				cache: 'no-store'
 			});

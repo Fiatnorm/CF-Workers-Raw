@@ -136,6 +136,8 @@ https://raw.090227.xyz/https://raw.githubusercontent.com/cmliu/CF-Workers-Raw/ma
 | URL | `https://github.com/cmliu/CF-Workers-Raw/blob/main/README.md` |❌| 主页伪装 |
 | ERROR | `无法获取文件，检查路径或TOKEN是否正确。` |❌| 自定义错误提示 |
 
+> GitHub Raw 前置 CDN 可能短暂缓存同一路径的旧版本。Worker 会在回源时自动添加内部缓存破除参数；如需上传后立即读取最新内容，请将 `CACHE_TTL` 设为 `0`。
+
 ## 🎯 TOKEN_PATH 详细说明
 
 TOKEN_PATH 是一个强大的新功能，允许你为不同的路径设置专用的访问令牌：
