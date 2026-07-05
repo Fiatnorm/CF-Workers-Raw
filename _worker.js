@@ -4,8 +4,10 @@ export default {
 		const url = new URL(request.url);
 		if (url.pathname !== '/') {
 			let githubRawUrl = 'https://raw.githubusercontent.com';
-			if (new RegExp(githubRawUrl, 'i').test(url.pathname)) {
-				githubRawUrl += url.pathname.split(githubRawUrl)[1];
+			const explicitRawUrlMatch = url.pathname.match(/https:\/\/raw\.githubusercontent\.com(\/.*)/i);
+			const usesExplicitRawUrl = Boolean(explicitRawUrlMatch);
+			if (usesExplicitRawUrl) {
+				githubRawUrl += explicitRawUrlMatch[1];
 			} else {
 				if (env.GH_NAME) {
 					githubRawUrl += '/' + env.GH_NAME;
@@ -94,7 +96,7 @@ export default {
 			// 同一路径可能继续返回约 5 分钟的旧版本。配置完整仓库信息时，
 			// 改用 GitHub Contents API 的 raw 媒体类型获取当前分支内容。
 			let upstreamUrl = githubRawUrl;
-			if (env.GH_NAME && env.GH_REPO && env.GH_BRANCH) {
+			if (!usesExplicitRawUrl && env.GH_NAME && env.GH_REPO && env.GH_BRANCH) {
 				upstreamUrl = new URL(
 					`https://api.github.com/repos/${encodeURIComponent(env.GH_NAME)}/${encodeURIComponent(env.GH_REPO)}/contents${url.pathname}`
 				);
@@ -143,10 +145,10 @@ export default {
 };
 
 function getCacheTtl(value) {
-	if (value === undefined || value === null || value === '') return 30;
+	if (value === undefined || value === null || value === '') return 10;
 
 	const ttl = Number.parseInt(value, 10);
-	if (!Number.isFinite(ttl)) return 30;
+	if (!Number.isFinite(ttl)) return 10;
 	return Math.min(Math.max(ttl, 0), 86400);
 }
 
@@ -171,6 +173,7 @@ function createClientResponse(response, cacheStatus) {
 	responseHeaders.set('CDN-Cache-Control', 'no-store');
 	responseHeaders.set('Pragma', 'no-cache');
 	responseHeaders.set('Expires', '0');
+	responseHeaders.set('Content-Type', 'text/plain; charset=utf-8');
 	responseHeaders.set('X-CF-Workers-Raw-Cache', cacheStatus);
 	responseHeaders.delete('Age');
 
