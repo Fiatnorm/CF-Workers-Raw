@@ -101,6 +101,7 @@ export default {
 				upstreamUrl.searchParams.set('ref', env.GH_BRANCH);
 				headers.set('Accept', 'application/vnd.github.raw+json');
 				headers.set('X-GitHub-Api-Version', '2022-11-28');
+				headers.set('User-Agent', 'CF-Workers-Raw');
 			}
 			const response = await fetch(upstreamUrl, {
 				headers,
